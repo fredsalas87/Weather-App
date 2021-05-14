@@ -68,6 +68,6 @@ try:
     print(climaAtual['textoClima'])
     print('Temperatura: ' + str(climaAtual['temperatura']) + '\xb0' + 'C')
 except:
-    print('Não foi possível obter o clima atual')
+    print('Erro ao processar a solicitação. Entre em contato com o suporte')
 
 
