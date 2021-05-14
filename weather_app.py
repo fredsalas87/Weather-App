@@ -1,7 +1,9 @@
 import requests
 import json
+from datetime import date
 
 accuweatherAPIKey = 'XCzlTx8FytDGRdpmnYiIGAdLzaBV8qHU'
+dias_semana = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
 
 def pegarCoordenadas():
     r = requests.get('http://www.geoplugin.net/json.gp')
@@ -58,6 +60,33 @@ def pegarTempoAgora(codigoLocal, nomeLocal):
             return infoClima
         except:
             return None
+
+
+def pegarPrevisao5Dias(codigoLocal):
+    dailyAPIUrl = 'http://dataservice.accuweather.com/forecasts/v1/daily/5day/' \
+                              + codigoLocal + '?apikey=' + accuweatherAPIKey + '&language=pt-br&metric=true'
+
+    r = requests.get(dailyAPIUrl)
+    if (r.status_code != 200):
+        print('Não foi possível obter a previsão do tempo para 5 dias')
+        return None
+    else:
+        try:
+            dailyResponse = json.loads(r.text)
+            infoClima5Dias = []
+            for dia in dailyResponse['DailyForecasts']:
+                climaDia = {}
+                climaDia['max'] = dia['Temperature']['Maximum']['Value']
+                climaDia['min'] = dia['Temperature']['Minimum']['Value']
+                climaDia['clima'] = dia['Day']['IconPhrase']
+                diaSemana = int(date.fromtimestamp(dia['EpochDate']).strftime('%w'))
+                climaDia['dia'] = dias_semana[diaSemana]
+                infoClima5Dias.append(climaDia)
+            return infoClima5Dias
+        except:
+            return None
+
+
 ## Inicio do programa
 
 try:
@@ -67,6 +96,18 @@ try:
     print('Clima atual em: ' + climaAtual['nomeLocal'])
     print(climaAtual['textoClima'])
     print('Temperatura: ' + str(climaAtual['temperatura']) + '\xb0' + 'C')
+
+    print('\nClima para hoje e para os próximos dias')
+    print('============================================')
+    print('\n')
+
+    previsao5Dias = pegarPrevisao5Dias(local['codigoLocal'])
+    for dia in previsao5Dias:
+        print(dia['dia'])
+        print('Máxima: ' + str(dia['max']) + '\xb0' + 'C')
+        print('Mínima: ' + str(dia['min']) + '\xb0' + 'C')
+        print('Clima: ' + dia['clima'])
+        print('--------------------------------------\n')
 except:
     print('Erro ao processar a solicitação. Entre em contato com o suporte')
 
