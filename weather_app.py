@@ -1,8 +1,10 @@
 import requests
 import json
+import urllib.parse
 from datetime import date
 
 accuweatherAPIKey = 'XCzlTx8FytDGRdpmnYiIGAdLzaBV8qHU'
+mapboxToken = 'pk.eyJ1IjoiZnJlZHNhbGFzODciLCJhIjoiY2tvc3Y0aTJwMDRseTJ6cDdvZTEwcWN3YSJ9.KpjxfqtQwXX8kEJ8cp4xiw'
 dias_semana = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado']
 
 def pegarCoordenadas():
@@ -35,8 +37,8 @@ def pegarCodigoLocal(lat, long):
             locationResponse = json.loads(r.text)
             infoLocal = {}
             infoLocal['nomeLocal'] = locationResponse['LocalizedName'] + ', '\
-                        + locationResponse['AdministrativeArea']['LocalizedName'] + '. '\
-                        + locationResponse['Country']['LocalizedName']
+                                    + locationResponse['AdministrativeArea']['LocalizedName'] + '. '\
+                                    + locationResponse['Country']['LocalizedName']
             infoLocal['codigoLocal'] = locationResponse['Key']
             return infoLocal
         except:
@@ -48,7 +50,7 @@ def pegarTempoAgora(codigoLocal, nomeLocal):
 
     r = requests.get(currentConditionsAPIUrl)
     if (r.status_code != 200):
-        print('Não foi possível obter o clima do local')
+        print('Não foi possível obter o clima atual')
         return None
     else:
         try:
@@ -64,7 +66,8 @@ def pegarTempoAgora(codigoLocal, nomeLocal):
 
 def pegarPrevisao5Dias(codigoLocal):
     dailyAPIUrl = 'http://dataservice.accuweather.com/forecasts/v1/daily/5day/' \
-                              + codigoLocal + '?apikey=' + accuweatherAPIKey + '&language=pt-br&metric=true'
+                    + codigoLocal + '?apikey=' + accuweatherAPIKey \
+                    + '&language=pt-br&metric=true'
 
     r = requests.get(dailyAPIUrl)
     if (r.status_code != 200):
@@ -86,31 +89,70 @@ def pegarPrevisao5Dias(codigoLocal):
         except:
             return None
 
-def mostrarPrevisao():
-    local = pegarCodigoLocal(coordenadas['lat'], coordenadas['long'])
-    climaAtual = pegarTempoAgora(local['codigoLocal'], local['nomeLocal'])
-    print('Clima atual em: ' + climaAtual['nomeLocal'])
-    print(climaAtual['textoClima'])
-    print('Temperatura: ' + str(climaAtual['temperatura']) + '\xb0' + 'C')
+def mostrarPrevisao(lat, long):
+    try:
+        local = pegarCodigoLocal(lat, long)
+        climaAtual = pegarTempoAgora(local['codigoLocal'], local['nomeLocal'])
+        print('Clima atual em: ' + climaAtual['nomeLocal'])
+        print(climaAtual['textoClima'])
+        print('Temperatura: ' + str(climaAtual['temperatura']) + '\xb0' + 'C')
+    except:
+        print('Erro ao obter o clima atual')
 
-    opcao = input('Deseja ver a previsão para os próximos dias? (s ou n)').lower()
-    print('\nClima para hoje e para os próximos dias')
-    print('============================================')
-    print('\n')
+    opcao = input('\nDeseja ver a previsão para os próximos dias? (s ou n): ').lower()
 
-    previsao5Dias = pegarPrevisao5Dias(local['codigoLocal'])
-    for dia in previsao5Dias:
-        print(dia['dia'])
-        print('Máxima: ' + str(dia['max']) + '\xb0' + 'C')
-        print('Mínima: ' + str(dia['min']) + '\xb0' + 'C')
-        print('Clima: ' + dia['clima'])
-        print('--------------------------------------\n')
+    if opcao == 's':
+        print('\nClima para hoje e para os próximos dias:\n')
+        try:
+            previsao5Dias = pegarPrevisao5Dias(local['codigoLocal'])
+            for dia in previsao5Dias:
+                print(dia['dia'])
+                print('Máxima: ' + str(dia['max']) + '\xb0' + 'C')
+                print('Mínima: ' + str(dia['min']) + '\xb0' + 'C')
+                print('Clima: ' + dia['clima'])
+                print('--------------------------------------')
+        except:
+            print('Erro para obter a previsão para os próximos dias')
+
+def pesquisarLocal (local):
+    _local = urllib.parse.quote(local)
+    mapboxGeocodeUrl = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'\
+                        + _local + '.json?access_token=' + mapboxToken
+
+    r = requests.get(mapboxGeocodeUrl)
+    if (r.status_code != 200):
+        print('Não foi possível obter o local atual')
+        return None
+    else:
+        try:
+            mapboxResponse = json.loads(r.text)
+            coordenadas = {}
+            coordenadas['long'] = str(mapboxResponse['features'][0]['geometry']['coordinates'][0])
+            coordenadas['lat'] = str(mapboxResponse['features'][0]['geometry']['coordinates'][1])
+            return coordenadas
+        except:
+            print('Erro na pesquisa do local')
+
 
 ## Inicio do programa
 
 try:
     coordenadas = pegarCoordenadas()
     mostrarPrevisao(coordenadas['lat'], coordenadas['long'])
+
+    continuar = 's'
+
+    while continuar == 's':
+        continuar = input('\nDeseja consultar a previsão de outro local? (s ou n): ').lower()
+        if continuar != 's':
+            break
+        local = input('Digite a cidade e o estado: ')
+        try:
+            coordenadas = pesquisarLocal(local)
+            mostrarPrevisao(coordenadas['lat'], coordenadas['long'])
+        except:
+            print('Não foi possível obter a previsão para este local')
+
 except:
     print('Erro ao processar a solicitação. Entre em contato com o suporte')
 
