@@ -86,17 +86,14 @@ def pegarPrevisao5Dias(codigoLocal):
         except:
             return None
 
-
-## Inicio do programa
-
-try:
-    coordenadas = pegarCoordenadas()
+def mostrarPrevisao():
     local = pegarCodigoLocal(coordenadas['lat'], coordenadas['long'])
     climaAtual = pegarTempoAgora(local['codigoLocal'], local['nomeLocal'])
     print('Clima atual em: ' + climaAtual['nomeLocal'])
     print(climaAtual['textoClima'])
     print('Temperatura: ' + str(climaAtual['temperatura']) + '\xb0' + 'C')
 
+    opcao = input('Deseja ver a previsão para os próximos dias? (s ou n)').lower()
     print('\nClima para hoje e para os próximos dias')
     print('============================================')
     print('\n')
@@ -108,6 +105,12 @@ try:
         print('Mínima: ' + str(dia['min']) + '\xb0' + 'C')
         print('Clima: ' + dia['clima'])
         print('--------------------------------------\n')
+
+## Inicio do programa
+
+try:
+    coordenadas = pegarCoordenadas()
+    mostrarPrevisao(coordenadas['lat'], coordenadas['long'])
 except:
     print('Erro ao processar a solicitação. Entre em contato com o suporte')
 
